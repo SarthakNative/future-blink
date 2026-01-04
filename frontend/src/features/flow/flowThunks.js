@@ -52,3 +52,75 @@ export const saveData = createAsyncThunk(
     }
   }
 );
+
+export const fetchSavedQueries = createAsyncThunk(
+  'flow/fetchSavedQueries',
+  async (_, { dispatch, rejectWithValue }) => {
+    const requestId = generateRequestId('fetchSavedQueries');
+    
+    try {
+      dispatch(startRequest({ requestId, type: 'fetchSavedQueries' }));
+      
+      const response = await aiService.getQueries();
+      
+      dispatch(completeRequest({ requestId }));
+      
+      return response.data;
+    } catch (error) {
+      dispatch(completeRequest({ requestId, error: error.message }));
+      return rejectWithValue({
+        message: error.message,
+        status: error.status,
+        data: error.data,
+      });
+    }
+  }
+);
+
+export const deleteSavedQuery = createAsyncThunk(
+  'flow/deleteSavedQuery',
+  async (queryId, { dispatch, rejectWithValue }) => {
+    const requestId = generateRequestId('deleteSavedQuery');
+    
+    try {
+      dispatch(startRequest({ requestId, type: 'deleteSavedQuery' }));
+      
+      const response = await aiService.deleteQuery(queryId);
+      
+      dispatch(completeRequest({ requestId }));
+      
+      return queryId; // Return the deleted ID to update state
+    } catch (error) {
+      dispatch(completeRequest({ requestId, error: error.message }));
+      return rejectWithValue({
+        message: error.message,
+        status: error.status,
+        data: error.data,
+      });
+    }
+  }
+);
+
+export const updateSavedQuery = createAsyncThunk(
+  'flow/updateSavedQuery',
+  async ({ id, data }, { dispatch, rejectWithValue }) => {
+    const requestId = generateRequestId('updateSavedQuery');
+    
+    try {
+      dispatch(startRequest({ requestId, type: 'updateSavedQuery' }));
+      
+      const response = await aiService.updateQuery(id, data);
+      
+      dispatch(completeRequest({ requestId }));
+      
+      return response.data; // Return the updated query
+    } catch (error) {
+      dispatch(completeRequest({ requestId, error: error.message }));
+      return rejectWithValue({
+        message: error.message,
+        status: error.status,
+        data: error.data,
+      });
+    }
+  }
+);

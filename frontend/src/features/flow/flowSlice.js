@@ -1,5 +1,11 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { askAI, saveData } from './flowThunks';
+import { 
+  askAI, 
+  saveData, 
+  fetchSavedQueries, 
+  deleteSavedQuery, 
+  updateSavedQuery 
+} from './flowThunks';
 
 const initialNodes = [
   {
@@ -33,14 +39,25 @@ const initialState = {
   outputText: '',
   isFlowRunning: false,
   isSaving: false,
+  isSaved: false,
+  lastSavedText: '',
   history: [],
+  savedQueries: [],
   currentQueryId: null,
+  savedQueriesLoading: false,
+  savedQueriesError: null,
+  deleteLoading: false,
+  updateLoading: false,
+  editDialogOpen: false,
 };
 
 const flowSlice = createSlice({
   name: 'flow',
   initialState,
   reducers: {
+    setEditDialogOpen: (state, action) => {
+      state.editDialogOpen = action.payload;
+    },
     setNodes: (state, action) => {
       state.nodes = action.payload;
     },
@@ -59,6 +76,11 @@ const flowSlice = createSlice({
         // Update inputText if it's the input node
         if (nodeId === '1' && data.value !== undefined) {
           state.inputText = data.value;
+          
+          // Check if text has changed since last save
+          if (state.inputText !== state.lastSavedText) {
+            state.isSaved = false;
+          }
         }
         
         // Update outputText if it's the output node
@@ -69,6 +91,12 @@ const flowSlice = createSlice({
     },
     setInputText: (state, action) => {
       state.inputText = action.payload;
+      
+      // Check if text has changed since last save
+      if (state.inputText !== state.lastSavedText) {
+        state.isSaved = false;
+      }
+      
       // Update input node
       const inputNodeIndex = state.nodes.findIndex(node => node.id === '1');
       if (inputNodeIndex !== -1) {
@@ -81,6 +109,12 @@ const flowSlice = createSlice({
       const outputNodeIndex = state.nodes.findIndex(node => node.id === '2');
       if (outputNodeIndex !== -1) {
         state.nodes[outputNodeIndex].data.value = action.payload;
+      }
+    },
+    setSavedStatus: (state, action) => {
+      state.isSaved = action.payload;
+      if (action.payload) {
+        state.lastSavedText = state.inputText;
       }
     },
     addToHistory: (state, action) => {
@@ -101,9 +135,37 @@ const flowSlice = createSlice({
       state.outputText = '';
       state.isFlowRunning = false;
       state.isSaving = false;
+      state.isSaved = false;
+      state.lastSavedText = '';
     },
     clearHistory: (state) => {
       state.history = [];
+    },
+    setSavedQueries: (state, action) => {
+      state.savedQueries = action.payload;
+    },
+    setSavedQueriesLoading: (state, action) => {
+      state.savedQueriesLoading = action.payload;
+    },
+    setSavedQueriesError: (state, action) => {
+      state.savedQueriesError = action.payload;
+    },
+    // Manual reducer for immediate UI update
+    removeSavedQueryLocal: (state, action) => {
+      state.savedQueries = state.savedQueries.filter(
+        query => query._id !== action.payload
+      );
+    },
+    updateSavedQueryLocal: (state, action) => {
+      const { id, data } = action.payload;
+      const queryIndex = state.savedQueries.findIndex(query => query._id === id);
+      if (queryIndex !== -1) {
+        state.savedQueries[queryIndex] = {
+          ...state.savedQueries[queryIndex],
+          ...data,
+          timestamp: new Date().toISOString(),
+        };
+      }
     },
   },
   extraReducers: (builder) => {
@@ -122,6 +184,9 @@ const flowSlice = createSlice({
           state.nodes[outputNodeIndex].data.value = action.payload.response;
         }
         
+        // Reset saved status when new AI response is generated
+        state.isSaved = false;
+        
         // Add to history
         state.history.unshift({
           id: Date.now(),
@@ -134,29 +199,115 @@ const flowSlice = createSlice({
       .addCase(askAI.rejected, (state) => {
         state.isFlowRunning = false;
       })
+      
       // Handle saveData thunk
       .addCase(saveData.pending, (state) => {
         state.isSaving = true;
       })
       .addCase(saveData.fulfilled, (state, action) => {
         state.isSaving = false;
+        state.isSaved = true;
+        state.lastSavedText = state.inputText;
         state.currentQueryId = action.payload.id;
+        
+        // Refresh saved queries after saving
+        if (action.payload.id) {
+          // Add to saved queries if not already present
+          const exists = state.savedQueries.some(q => q._id === action.payload.id);
+          if (!exists) {
+            state.savedQueries.unshift({
+              _id: action.payload.id,
+              prompt: state.inputText,
+              response: state.outputText,
+              timestamp: new Date().toISOString(),
+            });
+          }
+        }
       })
       .addCase(saveData.rejected, (state) => {
         state.isSaving = false;
+        state.isSaved = false;
+      })
+      
+      // Handle fetchSavedQueries thunk
+      .addCase(fetchSavedQueries.pending, (state) => {
+        state.savedQueriesLoading = true;
+        state.savedQueriesError = null;
+      })
+      .addCase(fetchSavedQueries.fulfilled, (state, action) => {
+        state.savedQueriesLoading = false;
+        state.savedQueries = action.payload;
+      })
+      .addCase(fetchSavedQueries.rejected, (state, action) => {
+        state.savedQueriesLoading = false;
+        state.savedQueriesError = action.payload.message;
+      })
+      
+      // Handle deleteSavedQuery thunk
+      .addCase(deleteSavedQuery.pending, (state) => {
+        state.deleteLoading = true;
+      })
+      .addCase(deleteSavedQuery.fulfilled, (state, action) => {
+        state.deleteLoading = false;
+        // Remove from state
+        state.savedQueries = state.savedQueries.filter(
+          query => query._id !== action.payload
+        );
+        
+        // If we deleted the currently saved query, reset saved status
+        if (state.currentQueryId === action.payload) {
+          state.isSaved = false;
+          state.currentQueryId = null;
+          state.lastSavedText = '';
+        }
+      })
+      .addCase(deleteSavedQuery.rejected, (state, action) => {
+        state.deleteLoading = false;
+        state.savedQueriesError = action.payload.message;
+      })
+      
+      // Handle updateSavedQuery thunk
+      .addCase(updateSavedQuery.pending, (state) => {
+        state.updateLoading = true;
+      })
+      .addCase(updateSavedQuery.fulfilled, (state, action) => {
+        state.updateLoading = false;
+        // Update in state
+        const queryIndex = state.savedQueries.findIndex(
+          query => query._id === action.payload._id
+        );
+        if (queryIndex !== -1) {
+          state.savedQueries[queryIndex] = action.payload;
+        }
+        
+        // If this is the current query, update saved status
+        if (state.currentQueryId === action.payload._id) {
+          state.lastSavedText = action.payload.prompt;
+        }
+      })
+      .addCase(updateSavedQuery.rejected, (state, action) => {
+        state.updateLoading = false;
+        state.savedQueriesError = action.payload.message;
       });
   },
 });
 
 export const {
+  setEditDialogOpen,
   setNodes,
   setEdges,
   updateNodeData,
   setInputText,
   setOutputText,
+  setSavedStatus,
   addToHistory,
   resetFlow,
   clearHistory,
+  setSavedQueries,
+  setSavedQueriesLoading,
+  setSavedQueriesError,
+  removeSavedQueryLocal,
+  updateSavedQueryLocal,
 } = flowSlice.actions;
 
 // Selectors
@@ -166,7 +317,14 @@ export const selectInputText = (state) => state.flow.inputText;
 export const selectOutputText = (state) => state.flow.outputText;
 export const selectIsFlowRunning = (state) => state.flow.isFlowRunning;
 export const selectIsSaving = (state) => state.flow.isSaving;
+export const selectIsSaved = (state) => state.flow.isSaved;
 export const selectHistory = (state) => state.flow.history;
+export const selectSavedQueries = (state) => state.flow.savedQueries;
+export const selectSavedQueriesLoading = (state) => state.flow.savedQueriesLoading;
+export const selectSavedQueriesError = (state) => state.flow.savedQueriesError;
+export const selectDeleteLoading = (state) => state.flow.deleteLoading;
+export const selectUpdateLoading = (state) => state.flow.updateLoading;
 export const selectCurrentQueryId = (state) => state.flow.currentQueryId;
-
+export const selectLastSavedText = (state) => state.flow.lastSavedText;
+export const selectEditDialogOpen = (state) => state.flow.editDialogOpen;
 export default flowSlice.reducer;

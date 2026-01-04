@@ -40,6 +40,8 @@ export const aiService = {
   askAI: (prompt) => api.post('/ask-ai', { prompt }),
   saveData: (data) => api.post('/save', data),
   getQueries: () => api.get('/queries'),
+  deleteQuery: (id) => api.delete(`/queries/${id}`),
+  updateQuery: (id, data) => api.put(`/queries/${id}`, data),
 };
 
 export default api;

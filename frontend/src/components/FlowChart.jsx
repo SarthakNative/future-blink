@@ -10,6 +10,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import CustomNode from './CustomNode';
+import SavedQueriesColumn from './SavedQueriesColumn';
 import { 
   Button, 
   Box, 
@@ -26,6 +27,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import HistoryIcon from '@mui/icons-material/History';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { 
   setNodes,
   setEdges,
@@ -39,6 +41,7 @@ import {
   selectOutputText,
   selectIsFlowRunning,
   selectIsSaving,
+  selectIsSaved,
   selectHistory,
 } from '../features/flow/flowSlice';
 import { askAI, saveData } from '../features/flow/flowThunks';
@@ -62,6 +65,7 @@ const FlowChart = () => {
   const outputText = useSelector(selectOutputText);
   const isFlowRunning = useSelector(selectIsFlowRunning);
   const isSaving = useSelector(selectIsSaving);
+  const isSaved = useSelector(selectIsSaved);
   const history = useSelector(selectHistory);
   const apiError = useSelector(selectApiError);
   
@@ -78,14 +82,6 @@ const FlowChart = () => {
     dispatch(setInputText(value));
     dispatch(updateNodeData({
       nodeId: '1',
-      data: { value }
-    }));
-  }, [dispatch]);
-
-  // Handle output node text change (if needed)
-  const handleOutputChange = useCallback((value) => {
-    dispatch(updateNodeData({
-      nodeId: '2',
       data: { value }
     }));
   }, [dispatch]);
@@ -132,7 +128,6 @@ const FlowChart = () => {
         timestamp: new Date().toISOString(),
       })).unwrap();
       
-      // Success handling can be added here
     } catch (error) {
       console.error('Failed to save:', error);
     }
@@ -140,7 +135,6 @@ const FlowChart = () => {
 
   const handleReset = () => {
     dispatch(resetFlow());
-    // Reset React Flow nodes/edges to initial state
     setReactFlowNodes(nodes);
     setReactFlowEdges(edges);
   };
@@ -156,7 +150,6 @@ const FlowChart = () => {
         id: `e${params.source}-${params.target}-${Date.now()}`,
       };
       setReactFlowEdges((eds) => addEdge(newEdge, eds));
-      // Also update Redux state
       dispatch(setEdges([...edges, newEdge]));
     },
     [dispatch, edges, setReactFlowEdges]
@@ -198,11 +191,9 @@ const FlowChart = () => {
     setReactFlowEdges(edges);
   }, [edges, setReactFlowEdges]);
 
-  // Handle React Flow nodes changes
   const handleNodesChange = useCallback((changes) => {
     onNodesChange(changes);
     
-    // Update Redux state for position changes
     changes.forEach(change => {
       if (change.type === 'position' && change.position) {
         const node = reactFlowNodes.find(n => n.id === change.id);
@@ -223,7 +214,6 @@ const FlowChart = () => {
     dispatch(clearError());
   };
 
-  // Format timestamp for display
   const formatTime = (timestamp) => {
     return new Date(timestamp).toLocaleTimeString([], { 
       hour: '2-digit', 
@@ -231,7 +221,6 @@ const FlowChart = () => {
     });
   };
 
-  // Format date for display
   const formatDate = (timestamp) => {
     return new Date(timestamp).toLocaleDateString([], {
       month: 'short',
@@ -242,8 +231,13 @@ const FlowChart = () => {
   return (
     <>
       <Box sx={{ display: 'flex', height: '90vh', gap: 2, overflow: 'hidden' }}>
-        {/* Main Flow Area */}
-        <Box sx={{ flex: 3, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {/* Left Column: Saved Queries */}
+        <Box sx={{ flex: 1, minWidth: 320, maxWidth: 400 }}>
+          <SavedQueriesColumn />
+        </Box>
+
+        {/* Middle Column: Flow Chart */}
+        <Box sx={{ flex: 2, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <Paper elevation={1} sx={{ p: 2, mb: 2, borderRadius: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="h6" color="primary" sx={{ fontWeight: 600 }}>
@@ -270,16 +264,30 @@ const FlowChart = () => {
                   </span>
                 </Tooltip>
                 
-                <Tooltip title="Save to Database">
+                <Tooltip title={isSaved ? "Already saved" : "Save to Database"}>
                   <span>
                     <Button
-                      variant="outlined"
-                      color="success"
-                      startIcon={isSaveLoading ? <Loader size={16} /> : <SaveIcon />}
+                      variant={isSaved ? "contained" : "outlined"}
+                      color={isSaved ? "success" : "primary"}
+                      startIcon={
+                        isSaved ? (
+                          <CheckCircleIcon />
+                        ) : isSaving || isSaveLoading ? (
+                          <Loader size={16} />
+                        ) : (
+                          <SaveIcon />
+                        )
+                      }
                       onClick={handleSave}
-                      disabled={isSaving || isSaveLoading || !inputText.trim() || !outputText.trim()}
+                      disabled={
+                        isSaving || 
+                        isSaveLoading || 
+                        isSaved || 
+                        !inputText.trim() || 
+                        !outputText.trim()
+                      }
                     >
-                      {isSaving || isSaveLoading ? 'Saving...' : 'Save'}
+                      {isSaving || isSaveLoading ? 'Saving...' : isSaved ? 'Saved' : 'Save'}
                     </Button>
                   </span>
                 </Tooltip>
@@ -295,6 +303,25 @@ const FlowChart = () => {
                 </Tooltip>
               </Box>
             </Box>
+            
+            {/* Save Status Indicator */}
+            {isSaved && (
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1, 
+                mt: 1,
+                p: 1,
+                backgroundColor: 'success.light',
+                color: 'success.contrastText',
+                borderRadius: 1,
+              }}>
+                <CheckCircleIcon fontSize="small" />
+                <Typography variant="caption">
+                  Current query is saved. Change the prompt to save again.
+                </Typography>
+              </Box>
+            )}
           </Paper>
 
           <Paper 
@@ -368,178 +395,180 @@ const FlowChart = () => {
           </Paper>
         </Box>
 
-        {/* History Sidebar */}
-        <Paper 
-          elevation={1} 
-          sx={{ 
-            flex: 1, 
-            p: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            minWidth: 320,
-            maxWidth: 400,
-            borderRadius: 2,
-            overflow: 'hidden',
-          }}
-        >
-          {/* History Header */}
-          <Box 
+        {/* Right Column: Query History */}
+        <Box sx={{ flex: 1, minWidth: 320, maxWidth: 400 }}>
+          <Paper 
+            elevation={1} 
             sx={{ 
-              p: 2, 
-              backgroundColor: 'primary.main',
-              color: 'white',
+              flex: 1,
+              p: 0,
               display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
+              flexDirection: 'column',
+              height: '100%',
+              borderRadius: 2,
+              overflow: 'hidden',
+              border: '1px solid',
+              borderColor: 'divider',
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <HistoryIcon />
-              <Typography variant="h6" sx={{ fontWeight: 500 }}>
-                Query History
-              </Typography>
-              <Badge 
-                badgeContent={history.length} 
-                color="secondary"
-                sx={{ ml: 1 }}
-              />
+            {/* History Header */}
+            <Box 
+              sx={{ 
+                p: 2, 
+                backgroundColor: 'primary.main',
+                color: 'white',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <HistoryIcon />
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                  Query History
+                </Typography>
+                <Badge 
+                  badgeContent={history.length} 
+                  color="secondary"
+                  sx={{ ml: 1 }}
+                />
+              </Box>
+              
+              {history.length > 0 && (
+                <Tooltip title="Clear History">
+                  <IconButton 
+                    size="small" 
+                    onClick={handleClearHistory}
+                    sx={{ color: 'white' }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
             </Box>
             
-            {history.length > 0 && (
-              <Tooltip title="Clear History">
-                <IconButton 
-                  size="small" 
-                  onClick={handleClearHistory}
-                  sx={{ color: 'white' }}
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            )}
-          </Box>
-          
-          {/* History List */}
-          <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
-            {history.length === 0 ? (
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                height: '100%',
-                color: 'text.secondary',
-                textAlign: 'center',
-                p: 4,
-              }}>
-                <HistoryIcon sx={{ fontSize: 60, mb: 2, opacity: 0.3 }} />
-                <Typography variant="body1" sx={{ mb: 1 }}>
-                  No queries yet
+            {/* History List */}
+            <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+              {history.length === 0 ? (
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  height: '100%',
+                  color: 'text.secondary',
+                  textAlign: 'center',
+                  p: 4,
+                }}>
+                  <HistoryIcon sx={{ fontSize: 60, mb: 2, opacity: 0.3 }} />
+                  <Typography variant="body1" sx={{ mb: 1 }}>
+                    No queries yet
+                  </Typography>
+                  <Typography variant="body2">
+                    Run your first AI query to see history here
+                  </Typography>
+                </Box>
+              ) : (
+                history.map((item, index) => (
+                  <React.Fragment key={item.id}>
+                    {index === 0 || 
+                     formatDate(history[index - 1].timestamp) !== formatDate(item.timestamp) ? (
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          display: 'block', 
+                          mt: index === 0 ? 0 : 2,
+                          mb: 1, 
+                          color: 'text.secondary',
+                          fontWeight: 500,
+                        }}
+                      >
+                        {formatDate(item.timestamp)}
+                      </Typography>
+                    ) : null}
+                    
+                    <Paper 
+                      elevation={0}
+                      sx={{ 
+                        p: 2,
+                        mb: 2,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        backgroundColor: 'background.default',
+                        '&:hover': {
+                          backgroundColor: 'action.hover',
+                          borderColor: 'primary.light',
+                        },
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          {formatTime(item.timestamp)}
+                        </Typography>
+                        {item.model && (
+                          <Chip 
+                            label={item.model.split('/').pop()} 
+                            size="small"
+                            variant="outlined"
+                            color="primary"
+                          />
+                        )}
+                      </Box>
+                      
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontWeight: 500, 
+                          mb: 1,
+                          color: 'text.primary',
+                        }}
+                      >
+                        {item.prompt.length > 80 ? `${item.prompt.substring(0, 80)}...` : item.prompt}
+                      </Typography>
+                      
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary"
+                        sx={{ 
+                          fontSize: '0.8rem',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        {item.response.length > 100 ? `${item.response.substring(0, 100)}...` : item.response}
+                      </Typography>
+                    </Paper>
+                  </React.Fragment>
+                ))
+              )}
+            </Box>
+            
+            {/* Stats Footer */}
+            <Divider />
+            <Box sx={{ p: 2, backgroundColor: 'grey.50' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Total Queries:
                 </Typography>
-                <Typography variant="body2">
-                  Run your first AI query to see history here
+                <Typography variant="body2" fontWeight="medium">
+                  {history.length}
                 </Typography>
               </Box>
-            ) : (
-              history.map((item, index) => (
-                <React.Fragment key={item.id}>
-                  {/* Date separator for new days */}
-                  {index === 0 || 
-                   formatDate(history[index - 1].timestamp) !== formatDate(item.timestamp) ? (
-                    <Typography 
-                      variant="caption" 
-                      sx={{ 
-                        display: 'block', 
-                        mt: index === 0 ? 0 : 2,
-                        mb: 1, 
-                        color: 'text.secondary',
-                        fontWeight: 500,
-                      }}
-                    >
-                      {formatDate(item.timestamp)}
-                    </Typography>
-                  ) : null}
-                  
-                  <Paper 
-                    elevation={0}
-                    sx={{ 
-                      p: 2,
-                      mb: 2,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 2,
-                      backgroundColor: 'background.default',
-                      '&:hover': {
-                        backgroundColor: 'action.hover',
-                        borderColor: 'primary.light',
-                      },
-                      transition: 'all 0.2s',
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        {formatTime(item.timestamp)}
-                      </Typography>
-                      {item.model && (
-                        <Chip 
-                          label={item.model.split('/').pop()} 
-                          size="small"
-                          variant="outlined"
-                          color="primary"
-                        />
-                      )}
-                    </Box>
-                    
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        fontWeight: 500, 
-                        mb: 1,
-                        color: 'text.primary',
-                      }}
-                    >
-                      {item.prompt.length > 80 ? `${item.prompt.substring(0, 80)}...` : item.prompt}
-                    </Typography>
-                    
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary"
-                      sx={{ 
-                        fontSize: '0.8rem',
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {item.response.length > 100 ? `${item.response.substring(0, 100)}...` : item.response}
-                    </Typography>
-                  </Paper>
-                </React.Fragment>
-              ))
-            )}
-          </Box>
-          
-          {/* Stats Footer */}
-          <Divider />
-          <Box sx={{ p: 2, backgroundColor: 'grey.50' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="body2" color="text.secondary">
-                Total Queries:
-              </Typography>
-              <Typography variant="body2" fontWeight="medium">
-                {history.length}
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Status:
+                </Typography>
+                <Chip 
+                  label={isFlowRunning || isAILoading ? 'Processing' : 'Ready'} 
+                  size="small"
+                  color={isFlowRunning || isAILoading ? 'warning' : 'success'}
+                  variant="outlined"
+                />
+              </Box>
             </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-              <Typography variant="body2" color="text.secondary">
-                Status:
-              </Typography>
-              <Chip 
-                label={isFlowRunning || isAILoading ? 'Processing' : 'Ready'} 
-                size="small"
-                color={isFlowRunning || isAILoading ? 'warning' : 'success'}
-                variant="outlined"
-              />
-            </Box>
-          </Box>
-        </Paper>
+          </Paper>
+        </Box>
       </Box>
 
       {/* Global Error Alert */}
