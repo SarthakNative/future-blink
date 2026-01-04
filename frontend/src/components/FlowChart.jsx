@@ -11,9 +11,9 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import CustomNode from './CustomNode';
 import SavedQueriesColumn from './SavedQueriesColumn';
-import { 
-  Button, 
-  Box, 
+import {
+  Button,
+  Box,
   Typography,
   Paper,
   Chip,
@@ -28,7 +28,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { 
+import {
   setNodes,
   setEdges,
   updateNodeData,
@@ -57,7 +57,7 @@ const nodeTypes = {
 
 const FlowChart = () => {
   const dispatch = useDispatch();
-  
+
   // Selectors
   const nodes = useSelector(selectNodes);
   const edges = useSelector(selectEdges);
@@ -68,7 +68,7 @@ const FlowChart = () => {
   const isSaved = useSelector(selectIsSaved);
   const history = useSelector(selectHistory);
   const apiError = useSelector(selectApiError);
-  
+
   // Check specific request loading states
   const isAILoading = useSelector(selectRequestLoading('askAI'));
   const isSaveLoading = useSelector(selectRequestLoading('saveData'));
@@ -92,22 +92,22 @@ const FlowChart = () => {
       dispatch(setError('Please enter a question'));
       return;
     }
-    
+
     try {
       const result = await dispatch(askAI(inputText)).unwrap();
-      
+
       // Update output node with AI response
       dispatch(updateNodeData({
         nodeId: '2',
         data: { value: result.response }
       }));
-      
+
     } catch (error) {
       console.error('Failed to run flow:', error);
       // Update output node with error message
       dispatch(updateNodeData({
         nodeId: '2',
-        data: { 
+        data: {
           value: `Error: ${error.message || 'Failed to get AI response'}`
         }
       }));
@@ -120,14 +120,14 @@ const FlowChart = () => {
       dispatch(setError('No data to save'));
       return;
     }
-    
+
     try {
       await dispatch(saveData({
         prompt: inputText,
         response: outputText,
         timestamp: new Date().toISOString(),
       })).unwrap();
-      
+
     } catch (error) {
       console.error('Failed to save:', error);
     }
@@ -182,7 +182,7 @@ const FlowChart = () => {
       }
       return node;
     });
-    
+
     setReactFlowNodes(updatedNodes);
   }, [nodes, isFlowRunning, isAILoading, handleInputChange, setReactFlowNodes]);
 
@@ -193,14 +193,14 @@ const FlowChart = () => {
 
   const handleNodesChange = useCallback((changes) => {
     onNodesChange(changes);
-    
+
     changes.forEach(change => {
       if (change.type === 'position' && change.position) {
         const node = reactFlowNodes.find(n => n.id === change.id);
         if (node) {
           dispatch(setNodes(
-            nodes.map(n => 
-              n.id === change.id 
+            nodes.map(n =>
+              n.id === change.id
                 ? { ...n, position: change.position }
                 : n
             )
@@ -215,9 +215,9 @@ const FlowChart = () => {
   };
 
   const formatTime = (timestamp) => {
-    return new Date(timestamp).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return new Date(timestamp).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -230,20 +230,30 @@ const FlowChart = () => {
 
   return (
     <>
-      <Box sx={{ display: 'flex', height: '90vh', gap: 2, overflow: 'hidden' }}>
+      <Box sx={{ display: 'flex', height: '100vh', gap: 2, overflow: 'hidden', minHeight: 0 }}>
         {/* Left Column: Saved Queries */}
-        <Box sx={{ flex: 1, minWidth: 320, maxWidth: 400 }}>
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 320,
+            maxWidth: 400,
+            display: 'flex',
+            minHeight: 0,
+            height:'80vh'
+          }}
+        >
           <SavedQueriesColumn />
         </Box>
 
+
         {/* Middle Column: Flow Chart */}
-        <Box sx={{ flex: 2, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <Box sx={{ flex: 2, display: 'flex', flexDirection: 'column', minWidth: 0 ,  height:'80vh'}}>
           <Paper elevation={1} sx={{ p: 2, mb: 2, borderRadius: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="h6" color="primary" sx={{ fontWeight: 600 }}>
                 AI Flow Processing
               </Typography>
-              
+
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 <Tooltip title="Run AI Flow">
                   <span>
@@ -263,7 +273,7 @@ const FlowChart = () => {
                     </Button>
                   </span>
                 </Tooltip>
-                
+
                 <Tooltip title={isSaved ? "Already saved" : "Save to Database"}>
                   <span>
                     <Button
@@ -280,10 +290,10 @@ const FlowChart = () => {
                       }
                       onClick={handleSave}
                       disabled={
-                        isSaving || 
-                        isSaveLoading || 
-                        isSaved || 
-                        !inputText.trim() || 
+                        isSaving ||
+                        isSaveLoading ||
+                        isSaved ||
+                        !inputText.trim() ||
                         !outputText.trim()
                       }
                     >
@@ -291,9 +301,9 @@ const FlowChart = () => {
                     </Button>
                   </span>
                 </Tooltip>
-                
+
                 <Tooltip title="Reset Flow">
-                  <IconButton 
+                  <IconButton
                     onClick={handleReset}
                     color="warning"
                     disabled={isFlowRunning || isAILoading}
@@ -303,13 +313,13 @@ const FlowChart = () => {
                 </Tooltip>
               </Box>
             </Box>
-            
+
             {/* Save Status Indicator */}
             {isSaved && (
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1, 
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
                 mt: 1,
                 p: 1,
                 backgroundColor: 'success.light',
@@ -324,10 +334,10 @@ const FlowChart = () => {
             )}
           </Paper>
 
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              flex: 1, 
+          <Paper
+            elevation={0}
+            sx={{
+              flex: 1,
               position: 'relative',
               border: '1px solid',
               borderColor: 'divider',
@@ -351,13 +361,13 @@ const FlowChart = () => {
                   backdropFilter: 'blur(2px)',
                 }}
               >
-                <Loader 
-                  message="Processing AI request..." 
+                <Loader
+                  message="Processing AI request..."
                   size={48}
                 />
               </Box>
             )}
-            
+
             <ReactFlow
               nodes={reactFlowNodes}
               edges={reactFlowEdges}
@@ -370,7 +380,7 @@ const FlowChart = () => {
               maxZoom={1.5}
             >
               <Controls />
-              <MiniMap 
+              <MiniMap
                 style={{
                   backgroundColor: '#f8f9fa',
                 }}
@@ -385,9 +395,9 @@ const FlowChart = () => {
                   return '#fff';
                 }}
               />
-              <Background 
-                variant="dots" 
-                gap={20} 
+              <Background
+                variant="dots"
+                gap={20}
                 size={1}
                 color="#e0e0e0"
               />
@@ -396,10 +406,19 @@ const FlowChart = () => {
         </Box>
 
         {/* Right Column: Query History */}
-        <Box sx={{ flex: 1, minWidth: 320, maxWidth: 400 }}>
-          <Paper 
-            elevation={1} 
-            sx={{ 
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 320,
+            maxWidth: 400,
+            display: 'flex',
+            minHeight: 0, 
+            height:'80vh'
+          }}
+        >
+          <Paper
+            elevation={1}
+            sx={{
               flex: 1,
               p: 0,
               display: 'flex',
@@ -412,9 +431,9 @@ const FlowChart = () => {
             }}
           >
             {/* History Header */}
-            <Box 
-              sx={{ 
-                p: 2, 
+            <Box
+              sx={{
+                p: 2,
                 backgroundColor: 'primary.main',
                 color: 'white',
                 display: 'flex',
@@ -427,17 +446,17 @@ const FlowChart = () => {
                 <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Query History
                 </Typography>
-                <Badge 
-                  badgeContent={history.length} 
+                <Badge
+                  badgeContent={history.length}
                   color="secondary"
                   sx={{ ml: 1 }}
                 />
               </Box>
-              
+
               {history.length > 0 && (
                 <Tooltip title="Clear History">
-                  <IconButton 
-                    size="small" 
+                  <IconButton
+                    size="small"
                     onClick={handleClearHistory}
                     sx={{ color: 'white' }}
                   >
@@ -446,14 +465,14 @@ const FlowChart = () => {
                 </Tooltip>
               )}
             </Box>
-            
+
             {/* History List */}
             <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
               {history.length === 0 ? (
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
+                <Box sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
                   justifyContent: 'center',
                   height: '100%',
                   color: 'text.secondary',
@@ -471,14 +490,14 @@ const FlowChart = () => {
               ) : (
                 history.map((item, index) => (
                   <React.Fragment key={item.id}>
-                    {index === 0 || 
-                     formatDate(history[index - 1].timestamp) !== formatDate(item.timestamp) ? (
-                      <Typography 
-                        variant="caption" 
-                        sx={{ 
-                          display: 'block', 
+                    {index === 0 ||
+                      formatDate(history[index - 1].timestamp) !== formatDate(item.timestamp) ? (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          display: 'block',
                           mt: index === 0 ? 0 : 2,
-                          mb: 1, 
+                          mb: 1,
                           color: 'text.secondary',
                           fontWeight: 500,
                         }}
@@ -486,10 +505,10 @@ const FlowChart = () => {
                         {formatDate(item.timestamp)}
                       </Typography>
                     ) : null}
-                    
-                    <Paper 
+
+                    <Paper
                       elevation={0}
-                      sx={{ 
+                      sx={{
                         p: 2,
                         mb: 2,
                         border: '1px solid',
@@ -508,30 +527,30 @@ const FlowChart = () => {
                           {formatTime(item.timestamp)}
                         </Typography>
                         {item.model && (
-                          <Chip 
-                            label={item.model.split('/').pop()} 
+                          <Chip
+                            label={item.model.split('/').pop()}
                             size="small"
                             variant="outlined"
                             color="primary"
                           />
                         )}
                       </Box>
-                      
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          fontWeight: 500, 
+
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 500,
                           mb: 1,
                           color: 'text.primary',
                         }}
                       >
                         {item.prompt.length > 80 ? `${item.prompt.substring(0, 80)}...` : item.prompt}
                       </Typography>
-                      
-                      <Typography 
-                        variant="body2" 
+
+                      <Typography
+                        variant="body2"
                         color="text.secondary"
-                        sx={{ 
+                        sx={{
                           fontSize: '0.8rem',
                           lineHeight: 1.4,
                         }}
@@ -543,7 +562,7 @@ const FlowChart = () => {
                 ))
               )}
             </Box>
-            
+
             {/* Stats Footer */}
             <Divider />
             <Box sx={{ p: 2, backgroundColor: 'grey.50' }}>
@@ -559,8 +578,8 @@ const FlowChart = () => {
                 <Typography variant="body2" color="text.secondary">
                   Status:
                 </Typography>
-                <Chip 
-                  label={isFlowRunning || isAILoading ? 'Processing' : 'Ready'} 
+                <Chip
+                  label={isFlowRunning || isAILoading ? 'Processing' : 'Ready'}
                   size="small"
                   color={isFlowRunning || isAILoading ? 'warning' : 'success'}
                   variant="outlined"
@@ -572,7 +591,7 @@ const FlowChart = () => {
       </Box>
 
       {/* Global Error Alert */}
-      <ErrorAlert 
+      <ErrorAlert
         error={apiError}
         open={!!apiError}
         onClose={handleCloseError}

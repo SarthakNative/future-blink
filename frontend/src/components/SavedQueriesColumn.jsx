@@ -172,14 +172,6 @@ const SavedQueriesColumn = () => {
       }
     });
 
-  // Format date for display
-  const formatDate = (timestamp) => {
-    try {
-      return format(new Date(timestamp), 'MMM dd, yyyy HH:mm');
-    } catch {
-      return 'Unknown date';
-    }
-  };
 
   // Calculate time ago
   const getTimeAgo = (timestamp) => {
@@ -216,6 +208,7 @@ const SavedQueriesColumn = () => {
       sx={{
         flex: 1,
         display: 'flex',
+        minHeight: 0,
         flexDirection: 'column',
         minWidth: 320,
         maxWidth: 400,
@@ -344,7 +337,7 @@ const SavedQueriesColumn = () => {
       </Box>
 
       {/* Queries List */}
-      <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+      <Box sx={{ flex: 1, overflow: 'auto', p: 2 , minHeight: 0}}>
         {filteredQueries.length === 0 ? (
           <Box
             sx={{

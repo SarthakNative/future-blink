@@ -4,7 +4,6 @@ import {
   saveData, 
   fetchSavedQueries, 
   deleteSavedQuery, 
-  updateSavedQuery 
 } from './flowThunks';
 
 const initialNodes = [
@@ -156,17 +155,6 @@ const flowSlice = createSlice({
         query => query._id !== action.payload
       );
     },
-    updateSavedQueryLocal: (state, action) => {
-      const { id, data } = action.payload;
-      const queryIndex = state.savedQueries.findIndex(query => query._id === id);
-      if (queryIndex !== -1) {
-        state.savedQueries[queryIndex] = {
-          ...state.savedQueries[queryIndex],
-          ...data,
-          timestamp: new Date().toISOString(),
-        };
-      }
-    },
   },
   extraReducers: (builder) => {
     builder
@@ -265,30 +253,6 @@ const flowSlice = createSlice({
         state.deleteLoading = false;
         state.savedQueriesError = action.payload.message;
       })
-      
-      // Handle updateSavedQuery thunk
-      .addCase(updateSavedQuery.pending, (state) => {
-        state.updateLoading = true;
-      })
-      .addCase(updateSavedQuery.fulfilled, (state, action) => {
-        state.updateLoading = false;
-        // Update in state
-        const queryIndex = state.savedQueries.findIndex(
-          query => query._id === action.payload._id
-        );
-        if (queryIndex !== -1) {
-          state.savedQueries[queryIndex] = action.payload;
-        }
-        
-        // If this is the current query, update saved status
-        if (state.currentQueryId === action.payload._id) {
-          state.lastSavedText = action.payload.prompt;
-        }
-      })
-      .addCase(updateSavedQuery.rejected, (state, action) => {
-        state.updateLoading = false;
-        state.savedQueriesError = action.payload.message;
-      });
   },
 });
 
@@ -307,7 +271,6 @@ export const {
   setSavedQueriesLoading,
   setSavedQueriesError,
   removeSavedQueryLocal,
-  updateSavedQueryLocal,
 } = flowSlice.actions;
 
 // Selectors
