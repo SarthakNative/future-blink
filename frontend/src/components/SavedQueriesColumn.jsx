@@ -37,6 +37,7 @@ import {
   Edit as EditIcon,
   Visibility,
   VisibilityOutlined,
+  Warning as WarningIcon,
 } from '@mui/icons-material';
 import {
   selectSavedQueries,
@@ -64,6 +65,7 @@ const SavedQueriesColumn = () => {
   const [selectedQuery, setSelectedQuery] = useState(null);
   const [filter, setFilter] = useState('all');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editPrompt, setEditPrompt] = useState('');
   const [editResponse, setEditResponse] = useState('');
 
@@ -75,20 +77,34 @@ const SavedQueriesColumn = () => {
     dispatch(fetchSavedQueries());
   };
 
-  const handleDelete = async (queryId) => {
-    if (window.confirm('Are you sure you want to delete this saved query?')) {
+  const handleDeleteClick = (queryId) => {
+    // Close the menu immediately when delete is clicked
+    handleMenuClose();
+    // Open the delete confirmation dialog
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (selectedQuery) {
+      const queryId = selectedQuery._id;
       // Optimistic update
       dispatch(removeSavedQueryLocal(queryId));
       
       try {
         await dispatch(deleteSavedQuery(queryId)).unwrap();
+        // Show success message if needed
+        // alert('Query deleted successfully!');
       } catch (error) {
         // If error, refresh to restore state
         dispatch(fetchSavedQueries());
         alert('Failed to delete query: ' + error.message);
       }
     }
-    setAnchorEl(null);
+    setDeleteDialogOpen(false);
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
   };
 
   const handleLoadQuery = (query) => {
@@ -122,7 +138,7 @@ const SavedQueriesColumn = () => {
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-    setSelectedQuery(null);
+    // Don't clear selectedQuery here as we might need it for delete dialog
   };
 
   const handleEditClick = () => {
@@ -584,7 +600,7 @@ const SavedQueriesColumn = () => {
             <Divider key="divider" />,
             <MenuItem
               key="delete"
-              onClick={() => handleDelete(selectedQuery._id)}
+              onClick={() => handleDeleteClick(selectedQuery._id)}
               sx={{ color: 'error.main' }}
             >
               <ListItemIcon>
@@ -628,6 +644,93 @@ const SavedQueriesColumn = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle id="delete-dialog-title" sx={{ display: 'flex', alignItems: 'center', gap: 2, color: 'error.main' }}>
+          <WarningIcon color="error" />
+          <span>Delete Query</span>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2, mb: 3 }}>
+            <Typography variant="body1" gutterBottom>
+              Are you sure you want to delete this saved query?
+            </Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              This action cannot be undone. The query will be permanently removed.
+            </Typography>
+            {selectedQuery && (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  mt: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  backgroundColor: 'grey.50',
+                }}
+              >
+                <Typography variant="subtitle2" gutterBottom color="text.primary">
+                  Query Preview:
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 500,
+                    mb: 1,
+                    color: 'text.primary',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {selectedQuery.prompt}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 1,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {selectedQuery.response?.substring(0, 100)}...
+                </Typography>
+              </Paper>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button
+            onClick={handleDeleteCancel}
+            variant="outlined"
+            sx={{ mr: 1 }}
+            disabled={deleteLoading}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            color="error"
+            startIcon={deleteLoading ? <CircularProgress size={20} color="inherit" /> : <DeleteIcon />}
+            disabled={deleteLoading}
+          >
+            {deleteLoading ? 'Deleting...' : 'Delete Query'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Paper>
