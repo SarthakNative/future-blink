@@ -5,7 +5,7 @@ The application acts as a wrapper around an AI model using **OpenRouter** with t
 `google/gemini-2.0-flash-exp:free` model.
 
 The project is structured with:
-- **Frontend**: React (Vite)
+- **Frontend**: React + React Flow (Vite)
 - **Backend**: Node.js + Express
 - **Database**: MongoDB
 
