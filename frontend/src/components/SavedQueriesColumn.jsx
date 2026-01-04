@@ -430,11 +430,7 @@ const SavedQueriesColumn = () => {
                   <Typography variant="caption" color="text.secondary">
                     {getTimeAgo(query.timestamp)}
                   </Typography>
-                  <CheckCircleIcon
-                    fontSize="small"
-                    color="success"
-                    sx={{ opacity: 0.7 }}
-                  />
+                  
                 </Box>
 
                 <Typography
@@ -607,7 +603,7 @@ const SavedQueriesColumn = () => {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Edit Saved Query</DialogTitle>
+        <DialogTitle>View Saved Query</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
             <TextField
