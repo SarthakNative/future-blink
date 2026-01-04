@@ -24,9 +24,7 @@ import {
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import SaveIcon from '@mui/icons-material/Save';
-import HistoryIcon from '@mui/icons-material/History';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
-import DeleteIcon from '@mui/icons-material/Delete';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import {
   setNodes,
@@ -34,7 +32,6 @@ import {
   updateNodeData,
   setInputText,
   resetFlow,
-  clearHistory,
   selectNodes,
   selectEdges,
   selectInputText,
@@ -42,7 +39,6 @@ import {
   selectIsFlowRunning,
   selectIsSaving,
   selectIsSaved,
-  selectHistory,
 } from '../features/flow/flowSlice';
 import { askAI, saveData } from '../features/flow/flowThunks';
 import { selectApiError, clearError, selectRequestLoading } from '../features/api/apiSlice';
@@ -66,7 +62,6 @@ const FlowChart = () => {
   const isFlowRunning = useSelector(selectIsFlowRunning);
   const isSaving = useSelector(selectIsSaving);
   const isSaved = useSelector(selectIsSaved);
-  const history = useSelector(selectHistory);
   const apiError = useSelector(selectApiError);
 
   // Check specific request loading states
@@ -137,10 +132,6 @@ const FlowChart = () => {
     dispatch(resetFlow());
     setReactFlowNodes(nodes);
     setReactFlowEdges(edges);
-  };
-
-  const handleClearHistory = () => {
-    dispatch(clearHistory());
   };
 
   const onConnect = useCallback(
@@ -405,189 +396,6 @@ const FlowChart = () => {
           </Paper>
         </Box>
 
-        {/* Right Column: Query History */}
-        <Box
-          sx={{
-            flex: 1,
-            minWidth: 320,
-            maxWidth: 400,
-            display: 'flex',
-            minHeight: 0, 
-            height:'80vh'
-          }}
-        >
-          <Paper
-            elevation={1}
-            sx={{
-              flex: 1,
-              p: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              height: '100%',
-              borderRadius: 2,
-              overflow: 'hidden',
-              border: '1px solid',
-              borderColor: 'divider',
-            }}
-          >
-            {/* History Header */}
-            <Box
-              sx={{
-                p: 2,
-                backgroundColor: 'primary.main',
-                color: 'white',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <HistoryIcon />
-                <Typography variant="h6" sx={{ fontWeight: 500 }}>
-                  Query History
-                </Typography>
-                <Badge
-                  badgeContent={history.length}
-                  color="secondary"
-                  sx={{ ml: 1 }}
-                />
-              </Box>
-
-              {history.length > 0 && (
-                <Tooltip title="Clear History">
-                  <IconButton
-                    size="small"
-                    onClick={handleClearHistory}
-                    sx={{ color: 'white' }}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              )}
-            </Box>
-
-            {/* History List */}
-            <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
-              {history.length === 0 ? (
-                <Box sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100%',
-                  color: 'text.secondary',
-                  textAlign: 'center',
-                  p: 4,
-                }}>
-                  <HistoryIcon sx={{ fontSize: 60, mb: 2, opacity: 0.3 }} />
-                  <Typography variant="body1" sx={{ mb: 1 }}>
-                    No queries yet
-                  </Typography>
-                  <Typography variant="body2">
-                    Run your first AI query to see history here
-                  </Typography>
-                </Box>
-              ) : (
-                history.map((item, index) => (
-                  <React.Fragment key={item.id}>
-                    {index === 0 ||
-                      formatDate(history[index - 1].timestamp) !== formatDate(item.timestamp) ? (
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          display: 'block',
-                          mt: index === 0 ? 0 : 2,
-                          mb: 1,
-                          color: 'text.secondary',
-                          fontWeight: 500,
-                        }}
-                      >
-                        {formatDate(item.timestamp)}
-                      </Typography>
-                    ) : null}
-
-                    <Paper
-                      elevation={0}
-                      sx={{
-                        p: 2,
-                        mb: 2,
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        borderRadius: 2,
-                        backgroundColor: 'background.default',
-                        '&:hover': {
-                          backgroundColor: 'action.hover',
-                          borderColor: 'primary.light',
-                        },
-                        transition: 'all 0.2s',
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          {formatTime(item.timestamp)}
-                        </Typography>
-                        {item.model && (
-                          <Chip
-                            label={item.model.split('/').pop()}
-                            size="small"
-                            variant="outlined"
-                            color="primary"
-                          />
-                        )}
-                      </Box>
-
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontWeight: 500,
-                          mb: 1,
-                          color: 'text.primary',
-                        }}
-                      >
-                        {item.prompt.length > 80 ? `${item.prompt.substring(0, 80)}...` : item.prompt}
-                      </Typography>
-
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{
-                          fontSize: '0.8rem',
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        {item.response.length > 100 ? `${item.response.substring(0, 100)}...` : item.response}
-                      </Typography>
-                    </Paper>
-                  </React.Fragment>
-                ))
-              )}
-            </Box>
-
-            {/* Stats Footer */}
-            <Divider />
-            <Box sx={{ p: 2, backgroundColor: 'grey.50' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary">
-                  Total Queries:
-                </Typography>
-                <Typography variant="body2" fontWeight="medium">
-                  {history.length}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Status:
-                </Typography>
-                <Chip
-                  label={isFlowRunning || isAILoading ? 'Processing' : 'Ready'}
-                  size="small"
-                  color={isFlowRunning || isAILoading ? 'warning' : 'success'}
-                  variant="outlined"
-                />
-              </Box>
-            </Box>
-          </Paper>
-        </Box>
       </Box>
 
       {/* Global Error Alert */}

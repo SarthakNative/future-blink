@@ -40,7 +40,6 @@ const initialState = {
   isSaving: false,
   isSaved: false,
   lastSavedText: '',
-  history: [],
   savedQueries: [],
   currentQueryId: null,
   savedQueriesLoading: false,
@@ -116,17 +115,6 @@ const flowSlice = createSlice({
         state.lastSavedText = state.inputText;
       }
     },
-    addToHistory: (state, action) => {
-      state.history.unshift({
-        id: Date.now(),
-        timestamp: new Date().toISOString(),
-        ...action.payload,
-      });
-      // Keep only last 10 items
-      if (state.history.length > 10) {
-        state.history.pop();
-      }
-    },
     resetFlow: (state) => {
       state.nodes = initialNodes;
       state.edges = initialEdges;
@@ -136,9 +124,6 @@ const flowSlice = createSlice({
       state.isSaving = false;
       state.isSaved = false;
       state.lastSavedText = '';
-    },
-    clearHistory: (state) => {
-      state.history = [];
     },
     setSavedQueries: (state, action) => {
       state.savedQueries = action.payload;
@@ -174,15 +159,7 @@ const flowSlice = createSlice({
         
         // Reset saved status when new AI response is generated
         state.isSaved = false;
-        
-        // Add to history
-        state.history.unshift({
-          id: Date.now(),
-          timestamp: new Date().toISOString(),
-          prompt: state.inputText,
-          response: action.payload.response,
-          model: action.payload.model,
-        });
+      
       })
       .addCase(askAI.rejected, (state) => {
         state.isFlowRunning = false;
@@ -264,9 +241,7 @@ export const {
   setInputText,
   setOutputText,
   setSavedStatus,
-  addToHistory,
   resetFlow,
-  clearHistory,
   setSavedQueries,
   setSavedQueriesLoading,
   setSavedQueriesError,
@@ -281,7 +256,6 @@ export const selectOutputText = (state) => state.flow.outputText;
 export const selectIsFlowRunning = (state) => state.flow.isFlowRunning;
 export const selectIsSaving = (state) => state.flow.isSaving;
 export const selectIsSaved = (state) => state.flow.isSaved;
-export const selectHistory = (state) => state.flow.history;
 export const selectSavedQueries = (state) => state.flow.savedQueries;
 export const selectSavedQueriesLoading = (state) => state.flow.savedQueriesLoading;
 export const selectSavedQueriesError = (state) => state.flow.savedQueriesError;
