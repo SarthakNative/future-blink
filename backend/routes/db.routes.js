@@ -91,37 +91,5 @@ router.delete('/queries/:id', async (req, res) => {
   }
 });
 
-// Update a saved query (NEW)
-router.put('/queries/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { prompt, response } = req.body;
-    
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ error: 'Invalid query ID' });
-    }
-    
-    const updatedQuery = await Query.findByIdAndUpdate(
-      id,
-      { 
-        prompt, 
-        response,
-        timestamp: new Date() 
-      },
-      { new: true, runValidators: true }
-    );
-    
-    if (!updatedQuery) {
-      return res.status(404).json({ error: 'Query not found' });
-    }
-    
-    res.json(updatedQuery);
-
-  } catch (error) {
-    console.error('Update error:', error);
-    res.status(500).json({ error: 'Failed to update query' });
-  }
-});
-
 
 module.exports = router;

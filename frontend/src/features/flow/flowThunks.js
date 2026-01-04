@@ -100,27 +100,3 @@ export const deleteSavedQuery = createAsyncThunk(
     }
   }
 );
-
-export const updateSavedQuery = createAsyncThunk(
-  'flow/updateSavedQuery',
-  async ({ id, data }, { dispatch, rejectWithValue }) => {
-    const requestId = generateRequestId('updateSavedQuery');
-    
-    try {
-      dispatch(startRequest({ requestId, type: 'updateSavedQuery' }));
-      
-      const response = await aiService.updateQuery(id, data);
-      
-      dispatch(completeRequest({ requestId }));
-      
-      return response.data; // Return the updated query
-    } catch (error) {
-      dispatch(completeRequest({ requestId, error: error.message }));
-      return rejectWithValue({
-        message: error.message,
-        status: error.status,
-        data: error.data,
-      });
-    }
-  }
-);
