@@ -1,10 +1,9 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
-const connectDB = require('./config/database');
-
-const aiRoutes = require('./routes/ai.routes');
-const dbRoutes = require('./routes/db.routes');
+import express from 'express';
+import cors from 'cors';
+import 'dotenv/config';
+import connectDB from './config/database.js';
+import aiRoutes from './routes/ai.routes.js';
+import dbRoutes from './routes/db.routes.js';
 
 const app = express();
 

@@ -1,5 +1,5 @@
-const express = require('express');
-const mongoose = require('mongoose');
+import express from 'express';
+import mongoose from 'mongoose';
 const router = express.Router();
 
 // Define schema
@@ -92,4 +92,4 @@ router.delete('/queries/:id', async (req, res) => {
 });
 
 
-module.exports = router;
+export default router;

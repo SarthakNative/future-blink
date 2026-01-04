@@ -1,5 +1,5 @@
-const express = require('express');
-const axios = require('axios');
+import express from 'express';
+import axios from 'axios';
 const router = express.Router();
 
 // POST endpoint for AI requests
@@ -55,4 +55,4 @@ router.post('/ask-ai', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
